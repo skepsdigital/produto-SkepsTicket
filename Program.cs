@@ -14,6 +14,7 @@ using SkepsTicket.Services.Interfaces;
 using SkepsTicket.Services;
 using SkepsTicket.Strategy;
 using SkepsTicket.Mongo.Interfaces;
+using SkepsTicket.Mongo.Model;
 
 internal class Program
 {
@@ -85,7 +86,25 @@ internal class Program
         builder.Services.AddSingleton<IMovideskService, MovideskService>();
         builder.Services.AddSingleton<IBlipService, BlipService>();
         builder.Services.AddSingleton<TicketStrategyFactory>();
+
+        //builder.Services.AddControllers().AddJsonOptions(options =>
+        //{
+        //    options.JsonSerializerOptions.Converters.Add(new DateTimeConverter());
+        //});
+        var corsPolicy = "AllowAll";
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(corsPolicy, policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            });
+        });
+
         var app = builder.Build();
+        app.UseCors(corsPolicy);
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -99,7 +118,6 @@ internal class Program
         app.UseAuthorization();
 
         app.MapControllers();
-        app.UseCors("AllowAll");
 
         app.Run();
     }

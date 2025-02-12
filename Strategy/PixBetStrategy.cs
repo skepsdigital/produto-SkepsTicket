@@ -85,7 +85,7 @@ namespace SkepsTicket.Strategy
                 foreach (var action in ticket.Actions.Where(a => a.Origin == 3 && !idsProcessados.Contains(a.CreatedDate?.Ticks.ToString())))
                 {
 
-                    var mensagem = Regex.Replace(action.Description, @"Em (seg|ter|qua|qui|sex|sab|sáb|dom)\., \d{1,2} de \w{3}\. de \d{4}.*", string.Empty, RegexOptions.Singleline);
+                    var mensagem = Regex.Replace(action.Description, @"#####.*", string.Empty, RegexOptions.Singleline);
 
                     var anexoFragmento = Regex.Matches(action.HtmlDescription, @"\/([A-Fa-f0-9]{32})(?=\?)")
                         .Cast<Match>()

@@ -13,6 +13,7 @@ namespace SkepsTicket.Mongo.Model
         public string Nome { get; set; }
         public List<string> TicketsMovidesk { get; set; }
         public string Empresa { get; set; }
+        public Dictionary<string, string?> HistoricoAtendimento { get; set; }
         public DateTime UltimaIteracao { get; set; }
     }
 }

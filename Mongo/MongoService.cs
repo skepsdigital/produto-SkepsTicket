@@ -3,6 +3,7 @@ using System.Text.Json;
 using MongoDB.Bson;
 using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Mongo.Model;
+using SkepsTicket.Model;
 namespace SkepsTicket.Mongo
 {
     public class MongoService : IMongoService
@@ -28,6 +29,27 @@ namespace SkepsTicket.Mongo
             await _clienteCollection.InsertOneAsync(cliente);
         }
 
+        public async Task<List<EmailAtivoMongo>> BuscarTickets(string empresa, DateTime? startDate, DateTime? endDate, string? attendant)
+        {
+            var filterBuilder = Builders<EmailAtivoMongo>.Filter;
+            var filters = new List<FilterDefinition<EmailAtivoMongo>>();
+
+            if (!string.IsNullOrEmpty(empresa))
+                filters.Add(filterBuilder.Eq(e => e.Empresa, empresa));
+
+            if (startDate.HasValue)
+                filters.Add(filterBuilder.Gte(e => e.DataCriação, startDate.Value));
+
+            if (endDate.HasValue)
+                filters.Add(filterBuilder.Lte(e => e.DataCriação, endDate.Value));
+
+            if (!string.IsNullOrEmpty(attendant))
+                filters.Add(filterBuilder.Eq(e => e.Atendente, attendant));
+
+            var finalFilter = filters.Count > 0 ? filterBuilder.And(filters) : filterBuilder.Empty;
+
+            return await _emailAtivoCollection.Find(finalFilter).ToListAsync();
+        }
 
         public async Task CreateEmailAtivoAsync(EmailAtivoMongo emailAtivo)
         {

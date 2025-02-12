@@ -18,7 +18,7 @@ namespace SkepsTicket.Services
         private readonly IMongoService _mongoService;
         private readonly TicketStrategyFactory strategyFactory;
         private readonly List<Empresa> _empresas;
-        private const string EmailNaoResponda = "email@teste.com";
+        private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io";
 
         public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig)
         {
@@ -197,6 +197,19 @@ namespace SkepsTicket.Services
         {
             var empresa = _empresas.First(e => e.Categoria.Equals(emailAtivo.Category));
 
+            var emailAtivoMongo = new EmailAtivoMongo
+            {
+                Assunto = emailAtivo.Subject,
+                Atendente = emailAtivo.Attendant,
+                Conteudo = emailAtivo.Description,
+                DataCriação = DateTime.UtcNow.AddHours(-3),
+                Destinatario = emailAtivo.Email,
+                Empresa = emailAtivo.ClientID,
+                Categoria = emailAtivo.Category
+            };
+
+            await _mongoService.CreateEmailAtivoAsync(emailAtivoMongo);
+
             var cliente = await _movideskAPI.GetClientAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", $"Emails/any(e: e/email eq '{emailAtivo.Email}')");
             var idCliente = string.Empty;
 
@@ -370,18 +383,6 @@ namespace SkepsTicket.Services
             });
 
             var enviarMensagemAtendenteResponse = await blipSender.SendCommandMessageAsync(enviarMensagemAtendenteJson, empresa.Key);
-
-            var emailAtivoMongo = new EmailAtivoMongo
-            {
-                Assunto = emailAtivo.Subject,
-                Atendente = emailAtivo.Attendant,
-                Conteudo = emailAtivo.Description,
-                DataCriação = DateTime.Now,
-                Destinatario = emailAtivo.Email
-            };
-
-            await _mongoService.CreateEmailAtivoAsync(emailAtivoMongo);
-
             return novoTicketResponse.Id;
         }
     }

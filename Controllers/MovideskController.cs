@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
+using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Services.Interfaces;
 using System.Text.Json;
 
@@ -13,12 +14,16 @@ namespace SkepsTicket.Controllers
         private readonly ILogger<MovideskController> _logger;
         private readonly IMovideskAPI _movideskApi;
         private readonly IMovideskService _movideskService;
+        private readonly IMongoService _mongoService;
 
-        public MovideskController(ILogger<MovideskController> logger, IMovideskAPI movideskApi, IMovideskService movideskService)
+        private const int MAX_TICKET_PAGE = 10;
+
+        public MovideskController(ILogger<MovideskController> logger, IMovideskAPI movideskApi, IMovideskService movideskService, IMongoService mongoService)
         {
             _logger = logger;
             _movideskApi = movideskApi;
             _movideskService = movideskService;
+            _mongoService = mongoService;
         }
 
         [HttpPost("webhook")]
@@ -51,17 +56,13 @@ namespace SkepsTicket.Controllers
         }
 
         [HttpGet("historico/{empresa}")]
-        public async Task<IActionResult> EnviarTicketAtivo([FromRoute] string empresa, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] string receiver)
+        public async Task<IActionResult> BuscarTicketAtivo([FromRoute] string empresa, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] string? attendant, [FromQuery] int page = 1)
         {
-            Console.WriteLine(JsonSerializer.Serialize(emailAtivo));
-            var result = await _movideskService.CriarTicketAtivo(emailAtivo);
+            var result = await _mongoService.BuscarTickets(empresa, startDate, endDate, attendant);
 
-            if (string.IsNullOrWhiteSpace(result))
-            {
-                return BadRequest();
-            }
+            result = result.Select(r => { r.Total = result.Count; return r;  }).OrderBy(r => r.Id).Skip((page -1) * MAX_TICKET_PAGE).Take(MAX_TICKET_PAGE).ToList();
 
-            return Ok();
+            return Ok(result);
         }
 
         [HttpGet("ticket/{id}")]

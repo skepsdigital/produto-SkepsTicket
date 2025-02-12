@@ -6,6 +6,7 @@ namespace SkepsTicket.Mongo.Interfaces
 {
     public interface IMongoService
     {
+        Task<List<EmailAtivoMongo>> BuscarTickets(string empresa, DateTime? startDate, DateTime? endDate, string? attendant);
         Task CreateClientAsync(ClienteMongo cliente);
         Task CreateEmailAtivoAsync(EmailAtivoMongo emailAtivo);
         Task<ClienteMongo> GetByIdAsync(string email);

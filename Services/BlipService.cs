@@ -2,6 +2,7 @@
 using RestEase;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
+using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Services.Interfaces;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
@@ -10,10 +11,12 @@ namespace SkepsTicket.Services
     public class BlipService : IBlipService
     {
         private readonly IMovideskAPI _movideskApi;
+        private readonly IMongoService _mongoService;
 
-        public BlipService(IMovideskAPI movideskApi)
+        public BlipService(IMovideskAPI movideskApi, IMongoService mongoService)
         {
             _movideskApi = movideskApi;
+            _mongoService = mongoService;
         }
 
 
@@ -46,6 +49,8 @@ namespace SkepsTicket.Services
 
                 if (blipCloseTicket.Tags.Contains("Resolvido"))
                 {
+                    //var cliente = await _mongoService.GetByIdAsync(emailCliente);
+
                     Console.WriteLine($"{contatoBlip.resource.extras.ticketIdMovidesk} - Ticket resolvido");
                     var atualizarTicket = new
                     {

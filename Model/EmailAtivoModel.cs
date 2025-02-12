@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.AspNetCore.Http;
+using System.Text.Json.Serialization;
 
 namespace SkepsTicket.Model
 {
@@ -11,5 +12,7 @@ namespace SkepsTicket.Model
         public string? CC { get; set;}
         public string Attendant { get; set; }
         public string Name { get; set; }
+        public IFormFile file { get; set; }
+        public string ClientID { get; set; }
     }
 }
