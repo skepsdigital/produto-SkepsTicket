@@ -2,6 +2,8 @@
 using RestEase;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
+using SkepsTicket.Mongo.Interfaces;
+using SkepsTicket.Mongo.Model;
 using SkepsTicket.Services.Util;
 using SkepsTicket.Strategy.Interfaces;
 using System;
@@ -16,12 +18,14 @@ namespace SkepsTicket.Strategy
         private const string URL_ANEXO_BASE = "https://zenvia.movidesk.com/Storage/Download?id=";
         private readonly ISendMessageBlip _sendMessageBlip;
         private readonly Func<string, IBlipSender> _blipSender;
+        private readonly IMongoService _mongoService;
 
-        public PixBetStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient)
+        public PixBetStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient, IMongoService mongoService)
         {
             _empresas = empresasConfig.Value.Empresas;
             _sendMessageBlip = sendMessageBlip;
             _blipSender = defaultClient;
+            _mongoService = mongoService;
         }
 
         public async Task Processar(TicketModel ticket)
@@ -70,43 +74,68 @@ namespace SkepsTicket.Strategy
 
                     string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot });
                     var criarAccountResponse = await _sendMessageBlip.CriarAccount(requestAccountJson);
+                    Console.WriteLine($"{ticket.Id}- {criarAccountResponse}");
                 }
                 else
                 {
                     Console.WriteLine($"{ticket.Id} -> Contato ja existente - {contatoIdentity}");
-                    var intsListaSeparadaPorVirgula = (string)contatoBlip.resource.extras.idsProcessados;
-                    idsProcessados = intsListaSeparadaPorVirgula.Split(',')
-                                               .Where(id => !string.IsNullOrWhiteSpace(id))
-                                               .ToList();
+                    try
+                    {
+                        var intsListaSeparadaPorVirgula = (string)contatoBlip.resource.extras.idsProcessados;
+                        idsProcessados = intsListaSeparadaPorVirgula.Split(',')
+                                                   .Where(id => !string.IsNullOrWhiteSpace(id))
+                                                   .ToList();
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine($"{ticket.Id} -> Sem ID Processado - {contatoIdentity}");
+                    }
                 }
 
                 var executouAlgumAcao = false;
 
-                foreach (var action in ticket.Actions.Where(a => a.Origin == 3 && !idsProcessados.Contains(a.CreatedDate?.Ticks.ToString())))
+                if (ticket.Actions.Last().Origin != 3 && (ticket.Tags is null || !ticket.Tags.Any()))
                 {
-
-                    var mensagem = Regex.Replace(action.Description, @"#####.*", string.Empty, RegexOptions.Singleline);
-
-                    var anexoFragmento = Regex.Matches(action.HtmlDescription, @"\/([A-Fa-f0-9]{32})(?=\?)")
-                        .Cast<Match>()
-                        .Where(match => match.Success)
-                        .Select(match => match.Groups[1].Value)
-                        .ToList();
-
-                    if (action.Attachments is not null)
+                    Console.WriteLine($"{ticket.Id} - Email Ativo na tela antiga");
+                }
+                else
+                {
+                    foreach (var action in ticket.Actions.Where(a => a.Origin == 3 && !idsProcessados.Contains(a.CreatedDate?.Ticks.ToString())))
                     {
-                        anexoFragmento.AddRange(action.Attachments.Select(a => a.Path));
+
+                        var mensagem = Regex.Replace(action.Description, @"#####.*", string.Empty, RegexOptions.Singleline);
+                        mensagem = Regex.Replace(mensagem, @"Em (seg|ter|qua|qui|sex|sab|dom|seg.|ter.|qua.|qui.|sex.|sab.|dom.).*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+                        var anexoFragmento = Regex.Matches(action.HtmlDescription, @"\/([A-Fa-f0-9]{32})(?=\?)")
+                            .Cast<Match>()
+                            .Where(match => match.Success)
+                            .Select(match => match.Groups[1].Value)
+                            .ToList();
+
+                        if (action.Attachments is not null)
+                        {
+                            anexoFragmento.AddRange(action.Attachments.Select(a => a.Path));
+                        }
+
+                        mensagem += string.Join(Environment.NewLine, anexoFragmento.Distinct().Select(anx => $"{URL_ANEXO_BASE}{anx}"));
+
+                        string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot });
+                        string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot });
+
+                        var sendBlipFila = new SendBlipFilaMongo
+                        {
+                            EnviarMensagem = requestEnviarMsgJson,
+                            CriarContaJson = requestAccountJson
+                        };
+
+                        await _mongoService.InserirComandoNaFila(sendBlipFila);
+
+                        Console.WriteLine($"{ticket.Id} - Comandos inseridos na fila");
+
+                        idsProcessados.Add(action.CreatedDate?.Ticks.ToString());
+
+                        executouAlgumAcao = true;
                     }
-
-                    mensagem += string.Join(Environment.NewLine, anexoFragmento.Distinct().Select(anx => $"{URL_ANEXO_BASE}{anx}"));
-
-                    string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot });
-
-                    await _sendMessageBlip.EnviarMensagem(requestEnviarMsgJson);
-
-                    idsProcessados.Add(action.CreatedDate?.Ticks.ToString());
-
-                    executouAlgumAcao = true;
                 }
 
                 if (executouAlgumAcao)

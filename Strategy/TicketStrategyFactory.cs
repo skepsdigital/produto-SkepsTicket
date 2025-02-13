@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
+using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Strategy.Interfaces;
 
 namespace SkepsTicket.Strategy
@@ -9,12 +10,12 @@ namespace SkepsTicket.Strategy
     {
         private readonly Dictionary<string, ITicketStrategy> _strategies;
 
-        public TicketStrategyFactory(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> senderBlip)
+        public TicketStrategyFactory(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> senderBlip, IMongoService mongoService)
         {
             _strategies = new()
             {
                 {"Blip - food to save", new FoodToSaveStrategy(empresasConfig)},
-                {"PixBet", new PixBetStrategy(empresasConfig, sendMessageBlip, senderBlip)},
+                {"PixBet", new PixBetStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService)},
             };
         }
 

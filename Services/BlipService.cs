@@ -54,7 +54,7 @@ namespace SkepsTicket.Services
                     Console.WriteLine($"{contatoBlip.resource.extras.ticketIdMovidesk} - Ticket resolvido");
                     var atualizarTicket = new
                     {
-                        id = contatoBlip.resource.extras.ticketIdMovidesk,
+                        id = (int)contatoBlip.resource.extras.ticketIdMovidesk,
                         actions = new[]
                         {
                         new {
@@ -68,11 +68,11 @@ namespace SkepsTicket.Services
                             createdDate= DateTime.Now,
                             createdBy= new
                             {
-                                id = contatoBlip.resource.extras.ownerId,
+                                id = (string)contatoBlip.resource.extras.ownerId,
                                 personType = 1,
                                 profileType = 3,
-                                businessName = contatoBlip.resource.extras.ownerBusinessName,
-                                email = contatoBlip.resource.extras.ownerEmail
+                                businessName = (string)contatoBlip.resource.extras.ownerBusinessName,
+                                email = (string)contatoBlip.resource.extras.ownerEmail
                             },
                             isDeleted= false,
                             timeAppointments= new object[]{ },
@@ -84,7 +84,7 @@ namespace SkepsTicket.Services
                     };
 
                     string atualizarTicketJson = JsonSerializer.Serialize(atualizarTicket);
-                    var atualizarTicketResponse = await _movideskApi.UpdateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", (int)contatoBlip.resource.extras.ticketIdMovides, atualizarTicketJson);
+                    var atualizarTicketResponse = await _movideskApi.UpdateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", (int)contatoBlip.resource.extras.ticketIdMovidesk, atualizarTicketJson);
                 }
                 else
                 {
@@ -92,7 +92,7 @@ namespace SkepsTicket.Services
 
                     var atualizarTicket = new
                     {
-                        id = (string)contatoBlip.resource.extras.ticketIdMovidesk,
+                        id = (int)contatoBlip.resource.extras.ticketIdMovidesk,
                         actions = new[]
                         {
                             new {

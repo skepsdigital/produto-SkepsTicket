@@ -10,6 +10,7 @@ namespace SkepsTicket.Mongo
     {
         private readonly IMongoCollection<ClienteMongo> _clienteCollection;
         private readonly IMongoCollection<EmailAtivoMongo> _emailAtivoCollection;
+        private readonly IMongoCollection<SendBlipFilaMongo> _sendBlipFilaCollection;
 
         public MongoService(IMongoClient mongoClient)
         {
@@ -17,8 +18,31 @@ namespace SkepsTicket.Mongo
 
             _clienteCollection = database.GetCollection<ClienteMongo>("SkepsTicket_user");
             _emailAtivoCollection = database.GetCollection<EmailAtivoMongo>("SkepsTicket_emailAtivo");
+            _sendBlipFilaCollection = database.GetCollection<SendBlipFilaMongo>("SkepsTicket_sendBlipFila");
         }
 
+        public async Task InserirComandoNaFila(SendBlipFilaMongo sendBlipFila)
+        {
+            await _sendBlipFilaCollection.InsertOneAsync(sendBlipFila);
+        }
+
+        public async Task<SendBlipFilaMongo> BuscarItemNaFila()
+        {
+            // Encontra o primeiro item na fila, ordenado pelo ObjectId (para pegar o mais antigo)
+            var item = await _sendBlipFilaCollection
+                .Find(FilterDefinition<SendBlipFilaMongo>.Empty)
+                .Sort(Builders<SendBlipFilaMongo>.Sort.Ascending(doc => doc.Id))
+                .Limit(1)
+                .FirstOrDefaultAsync();
+
+            if (item != null)
+            {
+                // Remove o item após ser encontrado
+                await _sendBlipFilaCollection.DeleteOneAsync(Builders<SendBlipFilaMongo>.Filter.Eq("_id", item.Id));
+            }
+
+            return item;
+        }
         public async Task CreateClientAsync(ClienteMongo cliente)
         {
             if (cliente == null)

@@ -81,7 +81,7 @@ internal class Program
                 return RestClient.For<IBlipSender>(httpClient);
             });
         });
-
+        builder.Logging.ClearProviders().AddConsole().AddFilter("System.Net.Http.HttpClient", LogLevel.None);
         builder.Services.AddSingleton<IMongoService, MongoService>();
         builder.Services.AddSingleton<IMovideskService, MovideskService>();
         builder.Services.AddSingleton<IBlipService, BlipService>();

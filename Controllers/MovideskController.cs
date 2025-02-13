@@ -60,7 +60,7 @@ namespace SkepsTicket.Controllers
         {
             var result = await _mongoService.BuscarTickets(empresa, startDate, endDate, attendant);
 
-            result = result.Select(r => { r.Total = result.Count; return r;  }).OrderBy(r => r.Id).Skip((page -1) * MAX_TICKET_PAGE).Take(MAX_TICKET_PAGE).ToList();
+            result = result.Select(r => { r.Total = result.Count; return r;  }).OrderByDescending(r => r.Id).Skip((page -1) * MAX_TICKET_PAGE).Take(MAX_TICKET_PAGE).ToList();
 
             return Ok(result);
         }

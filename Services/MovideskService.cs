@@ -74,6 +74,7 @@ namespace SkepsTicket.Services
                     if (ticket.Clients.Select(c => c.Email).Intersect(listaEmailNaoResponda).Any())
                     {
                         ticket.Clients.First().Email = ticket.Cc;
+                        ticket.Clients.First().BusinessName = ticket.Cc;
                     }
                 }
 

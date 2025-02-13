@@ -11,7 +11,7 @@ namespace SkepsTicket.Infra.RestEase
             [Header("Content-Type")] string contentType = "application/json");
 
         [Post("enviar-mensagem")]
-        Task<TicketModel> EnviarMensagem(
+        Task<string> EnviarMensagem(
              [Body] string request,
              [Header("Content-Type")] string contentType = "application/json");
     }
