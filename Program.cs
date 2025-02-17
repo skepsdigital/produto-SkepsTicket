@@ -54,6 +54,19 @@ internal class Program
         })
         .AddPolicyHandler(GetRetryPolicy());
 
+        builder.Services.AddHttpClient("SkepsUploadImg", client =>
+        {
+            client.BaseAddress = new Uri("https://d46pjmuoog.execute-api.sa-east-1.amazonaws.com/");
+        })
+        .AddPolicyHandler(GetRetryPolicy());
+
+        builder.Services.AddSingleton(serviceProvider =>
+        {
+            var clientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = clientFactory.CreateClient("SkepsUploadImg");
+            return RestClient.For<IUploadAnexo>(httpClient);
+        });
+
         builder.Services.AddSingleton(serviceProvider =>
         {
             var clientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();

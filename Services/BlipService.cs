@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using MongoDB.Driver;
+using Newtonsoft.Json;
 using RestEase;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
@@ -47,6 +48,11 @@ namespace SkepsTicket.Services
 
                 var respostaAtendente = string.Join(Environment.NewLine, result.Where(r => r.Type.Equals("text/plain")).Select(r => (string)r.Content));
 
+                if(string.IsNullOrWhiteSpace(respostaAtendente))
+                {
+                    Console.Write($"Ticket Encerrado sem respostas - {(int)contatoBlip.resource.extras.ticketIdMovidesk}");
+                }
+
                 if (blipCloseTicket.Tags.Contains("Resolvido"))
                 {
                     //var cliente = await _mongoService.GetByIdAsync(emailCliente);
@@ -57,34 +63,42 @@ namespace SkepsTicket.Services
                         id = (int)contatoBlip.resource.extras.ticketIdMovidesk,
                         actions = new[]
                         {
-                        new {
-                            id = 0,
-                            type= 2,
-                            origin= 2,
-                            description= respostaAtendente.Replace("\n","<br/>"),
-                            status= "Resolvido",
-                            baseStatus= "Resolved",
-                            justification = null as string,
-                            createdDate= DateTime.Now,
-                            createdBy= new
-                            {
-                                id = (string)contatoBlip.resource.extras.ownerId,
-                                personType = 1,
-                                profileType = 3,
-                                businessName = (string)contatoBlip.resource.extras.ownerBusinessName,
-                                email = (string)contatoBlip.resource.extras.ownerEmail
-                            },
-                            isDeleted= false,
-                            timeAppointments= new object[]{ },
-                            attachments= new object[]{},
-                            expenses= new object[]{},
-                            tags= new object[] { }
-                        }
-                    }
+                            new {
+                                id = 0,
+                                type= 2,
+                                origin= 2,
+                                description= respostaAtendente.Replace("\n","<br/>"),
+                                status= "Resolvido",
+                                baseStatus= "Resolved",
+                                justification = null as string,
+                                createdDate= DateTime.Now,
+                                createdBy= new
+                                {
+                                    id = (string)contatoBlip.resource.extras.ownerId,
+                                    personType = 1,
+                                    profileType = 3,
+                                    businessName = (string)contatoBlip.resource.extras.ownerBusinessName,
+                                    email = (string)contatoBlip.resource.extras.ownerEmail
+                                },
+                                isDeleted= false,
+                                timeAppointments= new object[]{ },
+                                attachments= new object[]{},
+                                expenses = new object[]{},
+                                tags = new List<string>
+                                        {
+                                            "SkepsTickets"
+                                        }
+                                }
+                        },
+                        tags = new List<string>
+                                    {
+                                        "SkepsTickets"
+                                    }
                     };
 
                     string atualizarTicketJson = JsonSerializer.Serialize(atualizarTicket);
                     var atualizarTicketResponse = await _movideskApi.UpdateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", (int)contatoBlip.resource.extras.ticketIdMovidesk, atualizarTicketJson);
+                    Console.WriteLine($"{contatoBlip.resource.extras.ticketIdMovidesk} - Resultado atualização ticket - OK");
                 }
                 else
                 {
@@ -115,17 +129,28 @@ namespace SkepsTicket.Services
                                 timeAppointments= new object[]{ },
                                 attachments= new object[]{},
                                 expenses= new object[]{},
-                                tags= new object[] { }
+                                tags= new List<string>
+                                    {
+                                        "SkepsTickets"
+                                    }
                             }
-                        }
+                        },
+                        tags = new List<string>
+                                    {
+                                        "SkepsTickets"
+                                    }
                     };
 
                     string atualizarTicketJson = JsonSerializer.Serialize(atualizarTicket);
                     var atualizarTicketResponse = await _movideskApi.UpdateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", (int)contatoBlip.resource.extras.ticketIdMovidesk, atualizarTicketJson);
+                    
+                    Console.WriteLine($"{contatoBlip.resource.extras.ticketIdMovidesk} - Resultado atualização ticket - OK");
                 }
             }
             catch(Exception ex)
             {
+                await _mongoService.InserirBlipCloseTicket(blipCloseTicket);
+                Console.WriteLine($"ERRO - Falha ao processar webhook {blipCloseTicket.Identity}");
                 Console.WriteLine(ex.Message);
             }
         }

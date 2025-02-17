@@ -1,6 +1,8 @@
-﻿namespace SkepsTicket.Model
+﻿using SkepsTicket.Mongo.Model;
+
+namespace SkepsTicket.Model
 {
-    public class BlipCloseTicketResponse
+    public class BlipCloseTicketResponse : MongoObjetc
     {
         public string BlipTicketId { get; set; }
         public string BotKey { get; set; }

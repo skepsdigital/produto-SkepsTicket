@@ -6,6 +6,7 @@ using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Mongo.Model;
 using SkepsTicket.Services.Interfaces;
 using SkepsTicket.Strategy;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,15 +19,21 @@ namespace SkepsTicket.Services
         private readonly IMongoService _mongoService;
         private readonly TicketStrategyFactory strategyFactory;
         private readonly List<Empresa> _empresas;
+        private readonly ISendMessageBlip _sendMessageBlip;
+        private readonly IUploadAnexo _uploadImg;
+        private readonly Func<string, IBlipSender> _blipSender;
         private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io";
 
-        public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig)
+        public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig, Func<string, IBlipSender> blipSender, ISendMessageBlip sendMessageBlip, IUploadAnexo uploadImg)
         {
             _logger = logger;
             _movideskAPI = movideskAPI;
             this.strategyFactory = strategyFactory;
             _mongoService = mongoService;
             _empresas = empresasConfig.Value.Empresas;
+            _blipSender = blipSender;
+            _sendMessageBlip = sendMessageBlip;
+            _uploadImg = uploadImg;
         }
 
         private async Task CriarOuAtualizarCliente(string emailCliente, string? nome, string empresa, string ticketId)
@@ -59,9 +66,12 @@ namespace SkepsTicket.Services
 
         public async Task ProcessarNovoTicketReceptivo(string ticketMovideskId)
         {
+            TicketModel? ticket = null;
+
             try
             {
-                var ticket = await _movideskAPI.GetTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", int.Parse(ticketMovideskId));
+                ticket = await _movideskAPI.GetTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", int.Parse(ticketMovideskId));
+                
                 var strategyKey = ticket.OriginEmailAccount ?? ticket.Owner.BusinessName;
 
                 Console.WriteLine($"INFORMACOES TICKET - {ticketMovideskId} - {ticket.ActionCount} - {ticket.OriginEmailAccount} - {ticket.Category} - {ticket.Owner.BusinessName} - {ticket.Clients.Count}");
@@ -89,6 +99,12 @@ namespace SkepsTicket.Services
             }
             catch (Exception ex)
             {
+                await _mongoService.InserirWebhookTicket(new WebhookTicketMongo
+                {
+                    ticket = ticket,
+                    TicketMovideskId = ticketMovideskId
+
+                });
                 Console.WriteLine($"Erro ao processar o ticket - {ticketMovideskId}");
                 Console.WriteLine(ex.Message);
             }
@@ -194,8 +210,38 @@ namespace SkepsTicket.Services
             var novoTicketResponse = await _movideskAPI.CreateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", 1, novoTicketJson);
         }
 
+        private async Task<string> ConvertIFormFileToBase64(IFormFile file)
+        {
+            using var memoryStream = new MemoryStream();
+
+            // Copia o conteúdo do arquivo para um MemoryStream
+            await file.CopyToAsync(memoryStream);
+
+            // Converte para um array de bytes
+            byte[] fileBytes = memoryStream.ToArray();
+
+            // Converte para Base64
+            return Convert.ToBase64String(fileBytes);
+        }
+
         public async Task<string> CriarTicketAtivo(EmailAtivoModel emailAtivo)
         {
+            Console.WriteLine("Iniciando criação do ticket ativo");
+            if (emailAtivo.file is not null)
+            {
+                var content = new MultipartFormDataContent();
+
+                var base64String = await ConvertIFormFileToBase64(emailAtivo.file);
+
+                var fileExtension = emailAtivo.file.ContentType;
+
+                content.Add(new StringContent(base64String), "base64");
+
+                content.Add(new StringContent(fileExtension), "fileExtension");
+
+                var linkAnexo = await _uploadImg.UploadAnexo(content);
+            }
+
             var empresa = _empresas.First(e => e.Categoria.Equals(emailAtivo.Category));
 
             var emailAtivoMongo = new EmailAtivoMongo
@@ -245,7 +291,7 @@ namespace SkepsTicket.Services
             {
                 Type = 2,
                 Subject = "Novo protocolo: " + emailAtivo.Subject,
-                Category = empresa.CategoriaEmailAtivo,
+                Category = emailAtivo.Category,
                 OwnerTeam = empresa.OwnerTeam,
                 Cc = emailAtivo.CC ?? string.Empty,
                 OriginEmailAccount = empresa.OriginEmailAccount,
@@ -320,16 +366,15 @@ namespace SkepsTicket.Services
 
             var contatoIdentity = emailAtivo.Email.Replace("@", "%40") + $".{empresa.Bot}@0mn.io";
 
-            var blipSender = RestClient.For<IBlipSender>($"https://{empresa.Contrato}.http.msging.net");
-            var sendMessageBlip = RestClient.For<ISendMessageBlip>("https://skepsticket-node.azurewebsites.net");
+            var blipSender = _blipSender($"https://{empresa.Contrato}.http.msging.net");
 
             string requestContatoJson = JsonSerializer.Serialize(new BlipCommandModel { Id = Guid.NewGuid().ToString(), Method = "get", To = "postmaster@crm.msging.net", Uri = $"/contacts/{contatoIdentity.Replace("%40", "%2540")}" });
             var contatoBlip = await blipSender.SendCommandAsync(requestContatoJson, empresa.Key);
 
             if (contatoBlip.status != "success")
             {
-                string requestAccountJson = JsonSerializer.Serialize(new { email = emailAtivo.Email.Replace("@", "%40"), identificadorBot = empresa.Bot });
-                var criarAccountResponse = await sendMessageBlip.CriarAccount(requestAccountJson);
+                string requestAccountJson = JsonSerializer.Serialize(new { email = emailAtivo.Email.Replace("@", "%40"), identificadorBot = empresa.Bot, contrato = empresa.Contrato });
+                var criarAccountResponse = await _sendMessageBlip.CriarAccount(requestAccountJson);
 
                 string requesteCriarContaJson = JsonSerializer.Serialize(new CriarContatoBlipModel
                 {

@@ -85,7 +85,7 @@ namespace SkepsTicket.Strategy
 
                     mensagem += string.Join(Environment.NewLine, anexoFragmento.Distinct().Select(anx => $"{URL_ANEXO_BASE}{anx}"));
 
-                    string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot });
+                    string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot, contrato = empresa.Contrato });
                     await sendMessageBlip.EnviarMensagem(requestEnviarMsgJson);
 
                     idsProcessados.Add(action.CreatedDate?.Ticks.ToString());

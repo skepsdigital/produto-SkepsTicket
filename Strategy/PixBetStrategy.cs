@@ -1,12 +1,9 @@
 ﻿using Microsoft.Extensions.Options;
-using RestEase;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
 using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Mongo.Model;
-using SkepsTicket.Services.Util;
 using SkepsTicket.Strategy.Interfaces;
-using System;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -72,7 +69,7 @@ namespace SkepsTicket.Strategy
 
                     Console.WriteLine($"{ticket.Id} -> Criar contato Status - {criarContatoResponse.status}");
 
-                    string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot });
+                    string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot, contrato = empresa.Contrato });
                     var criarAccountResponse = await _sendMessageBlip.CriarAccount(requestAccountJson);
                     Console.WriteLine($"{ticket.Id}- {criarAccountResponse}");
                 }
@@ -104,7 +101,7 @@ namespace SkepsTicket.Strategy
                     {
 
                         var mensagem = Regex.Replace(action.Description, @"#####.*", string.Empty, RegexOptions.Singleline);
-                        mensagem = Regex.Replace(mensagem, @"Em (seg|ter|qua|qui|sex|sab|dom|seg.|ter.|qua.|qui.|sex.|sab.|dom.).*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                        mensagem = Regex.Replace(mensagem, @"Em (seg|ter|qua|qui|sex|sab|sáb|dom|seg.|ter.|qua.|qui.|sex.|sab.|sáb.|dom.),? .*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
 
                         var anexoFragmento = Regex.Matches(action.HtmlDescription, @"\/([A-Fa-f0-9]{32})(?=\?)")
                             .Cast<Match>()
@@ -119,8 +116,8 @@ namespace SkepsTicket.Strategy
 
                         mensagem += string.Join(Environment.NewLine, anexoFragmento.Distinct().Select(anx => $"{URL_ANEXO_BASE}{anx}"));
 
-                        string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot });
-                        string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot });
+                        string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), mensagem = mensagem, identificadorBot = empresa.Bot, contrato = empresa.Contrato });
+                        string requestAccountJson = JsonSerializer.Serialize(new { email = ticket.Clients.First().Email.Replace("@", "%40"), identificadorBot = empresa.Bot, contrato = empresa.Contrato });
 
                         var sendBlipFila = new SendBlipFilaMongo
                         {
@@ -168,6 +165,12 @@ namespace SkepsTicket.Strategy
             }
             catch (Exception ex)
             {
+                await _mongoService.InserirWebhookTicket(new WebhookTicketMongo
+                {
+                    ticket = ticket,
+                    TicketMovideskId = ticket.Id
+
+                });
                 Console.WriteLine($"{ticket.Id} -> Erro ao processar ticket");
                 Console.WriteLine(ex.Message);
             }

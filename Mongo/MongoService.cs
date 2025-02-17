@@ -11,6 +11,10 @@ namespace SkepsTicket.Mongo
         private readonly IMongoCollection<ClienteMongo> _clienteCollection;
         private readonly IMongoCollection<EmailAtivoMongo> _emailAtivoCollection;
         private readonly IMongoCollection<SendBlipFilaMongo> _sendBlipFilaCollection;
+        private readonly IMongoCollection<BlipCloseTicketResponse> _blipCloseTicketResponse;
+        private readonly IMongoCollection<WebhookTicketMongo> _webhookTicketMongo;
+
+        private const int MAX_TICKET_PAGE = 10;
 
         public MongoService(IMongoClient mongoClient)
         {
@@ -19,6 +23,19 @@ namespace SkepsTicket.Mongo
             _clienteCollection = database.GetCollection<ClienteMongo>("SkepsTicket_user");
             _emailAtivoCollection = database.GetCollection<EmailAtivoMongo>("SkepsTicket_emailAtivo");
             _sendBlipFilaCollection = database.GetCollection<SendBlipFilaMongo>("SkepsTicket_sendBlipFila");
+            _blipCloseTicketResponse = database.GetCollection<BlipCloseTicketResponse>("SkepsTicket_blipCloseTicket");
+            _webhookTicketMongo = database.GetCollection<WebhookTicketMongo>("SkepsTicket_webhookticket");
+
+        }
+
+        public async Task InserirWebhookTicket(WebhookTicketMongo webhookTicket)
+        {
+            await _webhookTicketMongo.InsertOneAsync(webhookTicket);
+        }
+
+        public async Task InserirBlipCloseTicket(BlipCloseTicketResponse blipCloseTicket)
+        {
+            await _blipCloseTicketResponse.InsertOneAsync(blipCloseTicket);
         }
 
         public async Task InserirComandoNaFila(SendBlipFilaMongo sendBlipFila)
@@ -53,7 +70,7 @@ namespace SkepsTicket.Mongo
             await _clienteCollection.InsertOneAsync(cliente);
         }
 
-        public async Task<List<EmailAtivoMongo>> BuscarTickets(string empresa, DateTime? startDate, DateTime? endDate, string? attendant)
+        public async Task<List<EmailAtivoMongo>> BuscarTickets(string empresa, DateTime? startDate, DateTime? endDate, string? attendant, int page)
         {
             var filterBuilder = Builders<EmailAtivoMongo>.Filter;
             var filters = new List<FilterDefinition<EmailAtivoMongo>>();
@@ -72,7 +89,12 @@ namespace SkepsTicket.Mongo
 
             var finalFilter = filters.Count > 0 ? filterBuilder.And(filters) : filterBuilder.Empty;
 
-            return await _emailAtivoCollection.Find(finalFilter).ToListAsync();
+            return await _emailAtivoCollection
+                .Find(finalFilter)
+                .SortByDescending(e => e.Id)
+                .Skip((page - 1) * MAX_TICKET_PAGE)
+                .Limit(MAX_TICKET_PAGE)
+                .ToListAsync();
         }
 
         public async Task CreateEmailAtivoAsync(EmailAtivoMongo emailAtivo)

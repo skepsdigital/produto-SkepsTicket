@@ -54,6 +54,11 @@ namespace SkepsTicket.Controllers
                             await Task.Delay(3000);
                         }
                     }
+                    else
+                    {
+                        item.Id = new MongoDB.Bson.ObjectId();
+                        await mongoService.InserirComandoNaFila(item);
+                    }
 
                     item = await mongoService.BuscarItemNaFila();
                 }

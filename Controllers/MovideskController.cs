@@ -58,9 +58,14 @@ namespace SkepsTicket.Controllers
         [HttpGet("historico/{empresa}")]
         public async Task<IActionResult> BuscarTicketAtivo([FromRoute] string empresa, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate, [FromQuery] string? attendant, [FromQuery] int page = 1)
         {
-            var result = await _mongoService.BuscarTickets(empresa, startDate, endDate, attendant);
+            var result = await _mongoService.BuscarTickets(empresa, startDate, endDate, attendant, page);
 
-            result = result.Select(r => { r.Total = result.Count; return r;  }).OrderByDescending(r => r.Id).Skip((page -1) * MAX_TICKET_PAGE).Take(MAX_TICKET_PAGE).ToList();
+            result = result.Select(r => 
+            {
+                r.Total = result.Count;
+                //r.LinkBlip = $"https://brasgaming.blip.ai/application/detail/skepstickethml/attendance/history/{r.Destinatario.Replace("@", "%40")}.skepstickethml@0mn.io";
+                return r;  
+            }).ToList();
 
             return Ok(result);
         }
