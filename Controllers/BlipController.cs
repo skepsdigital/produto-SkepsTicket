@@ -3,6 +3,8 @@ using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
 using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Services.Interfaces;
+using System.Net.Sockets;
+using System.Text.Json;
 
 namespace SkepsTicket.Controllers
 {
@@ -29,6 +31,25 @@ namespace SkepsTicket.Controllers
         {
             Console.WriteLine($"Recebendo webhook Blip - {blipCloseTicket.BlipTicketId} - {blipCloseTicket.Identity} - {blipCloseTicket.Tags}");
             await blipService.ProcessarRespostaAtendente(blipCloseTicket);
+            return Ok();
+        }
+
+        [HttpPost("Reativar")]
+        public async Task<IActionResult> Reativar(string stringsGrande)
+        {
+            var strings = stringsGrande.Split(",");
+
+            foreach (var ident in strings)
+            {
+                string requestEnviarMsgJson = JsonSerializer.Serialize(new { email = ident.Replace("@", "%40"), mensagem = "Reativando", identificadorBot = "skepstickethml", contrato = "brasgaming" });
+                var enviarResponse = await _sendMessageBlip.EnviarMensagem(requestEnviarMsgJson);
+
+                if(enviarResponse.Contains("false"))
+                {
+                    await Task.Delay(10000);
+                }
+            }
+
             return Ok();
         }
 

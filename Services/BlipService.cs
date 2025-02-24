@@ -51,6 +51,7 @@ namespace SkepsTicket.Services
                 if(string.IsNullOrWhiteSpace(respostaAtendente))
                 {
                     Console.Write($"Ticket Encerrado sem respostas - {(int)contatoBlip.resource.extras.ticketIdMovidesk}");
+                    return;
                 }
 
                 if (blipCloseTicket.Tags.Contains("Resolvido"))

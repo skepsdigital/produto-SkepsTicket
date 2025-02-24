@@ -22,7 +22,7 @@ namespace SkepsTicket.Services
         private readonly ISendMessageBlip _sendMessageBlip;
         private readonly IUploadAnexo _uploadImg;
         private readonly Func<string, IBlipSender> _blipSender;
-        private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io";
+        private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io,naoresponda@emails.betdasorte.io";
 
         public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig, Func<string, IBlipSender> blipSender, ISendMessageBlip sendMessageBlip, IUploadAnexo uploadImg)
         {
@@ -227,6 +227,9 @@ namespace SkepsTicket.Services
         public async Task<string> CriarTicketAtivo(EmailAtivoModel emailAtivo)
         {
             Console.WriteLine("Iniciando criação do ticket ativo");
+
+            var anexoLink = string.Empty;
+
             if (emailAtivo.file is not null)
             {
                 var content = new MultipartFormDataContent();
@@ -239,7 +242,7 @@ namespace SkepsTicket.Services
 
                 content.Add(new StringContent(fileExtension), "fileExtension");
 
-                var linkAnexo = await _uploadImg.UploadAnexo(content);
+                anexoLink = await _uploadImg.UploadAnexo(content);
             }
 
             var empresa = _empresas.First(e => e.Categoria.Equals(emailAtivo.Category));
@@ -248,7 +251,7 @@ namespace SkepsTicket.Services
             {
                 Assunto = emailAtivo.Subject,
                 Atendente = emailAtivo.Attendant,
-                Conteudo = emailAtivo.Description,
+                Conteudo = emailAtivo.Description + anexoLink,
                 DataCriação = DateTime.UtcNow.AddHours(-3),
                 Destinatario = emailAtivo.Email,
                 Empresa = emailAtivo.ClientID,
@@ -302,7 +305,7 @@ namespace SkepsTicket.Services
                         Id = 1,
                         Type = 2,
                         Origin = 2,
-                        Description = emailAtivo.Description,
+                        Description = emailAtivo.Description + Environment.NewLine + anexoLink,
                         Status = "Novo",
                         CreatedBy = new CreatedBy
                         {
