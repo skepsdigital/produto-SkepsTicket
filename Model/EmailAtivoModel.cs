@@ -21,7 +21,7 @@ namespace SkepsTicket.Model
         [FromForm]
         public string Name { get; set; }
         [FromForm]
-        public IFormFile? file { get; set; }
+        public IFormFileCollection? file { get; set; }
         [FromForm]
         public string ClientID { get; set; }
     }

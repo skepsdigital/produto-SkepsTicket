@@ -70,6 +70,15 @@ namespace SkepsTicket.Services
 
             try
             {
+                var result = await _mongoService.GetByIdTicketAsync(ticketMovideskId);
+
+                if(result is not null)
+                {
+                    return;
+                }
+
+                await _mongoService.InserirTicketJaVisto(new TicketJaVisto { TicketId = ticketMovideskId });
+
                 ticket = await _movideskAPI.GetTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", int.Parse(ticketMovideskId));
                 
                 var strategyKey = ticket.OriginEmailAccount ?? ticket.Owner.BusinessName;
@@ -88,7 +97,13 @@ namespace SkepsTicket.Services
                     }
                 }
 
+
                 var emailCliente = ticket.Clients.FirstOrDefault().Email;
+
+                if(emailCliente.Contains("stakebet") || emailCliente.Contains("betano"))
+                {
+                    return;
+                }
                 await CriarOuAtualizarCliente(emailCliente, ticket.Clients.First().BusinessName, strategyKey, ticketMovideskId);
 
                 Console.WriteLine($"{ticketMovideskId} - {strategyKey}");
@@ -230,13 +245,13 @@ namespace SkepsTicket.Services
 
             var anexoLink = string.Empty;
 
-            if (emailAtivo.file is not null)
+            if (emailAtivo.file is not null && emailAtivo.file.Any())
             {
                 var content = new MultipartFormDataContent();
 
-                var base64String = await ConvertIFormFileToBase64(emailAtivo.file);
+                var base64String = await ConvertIFormFileToBase64(emailAtivo.file.First());
 
-                var fileExtension = emailAtivo.file.ContentType;
+                var fileExtension = emailAtivo.file.First().ContentType;
 
                 content.Add(new StringContent(base64String), "base64");
 

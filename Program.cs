@@ -45,8 +45,7 @@ internal class Program
         builder.Services.AddHttpClient("MovideskApi", client =>
         {
             client.BaseAddress = new Uri("https://api.movidesk.com/");
-        })
-        .AddPolicyHandler(GetRetryPolicy());
+        });
 
         builder.Services.AddHttpClient("SkepsSendMessage", client =>
         {

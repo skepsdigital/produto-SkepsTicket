@@ -33,7 +33,6 @@ namespace SkepsTicket.Controllers
             {
                 string ticketId = idElement.GetInt32().ToString();
                 Console.WriteLine($"Webhook - Recebido - {ticketId}");
-
                 _ = Task.Run(() => _movideskService.ProcessarNovoTicketReceptivo(ticketId));
             }
 

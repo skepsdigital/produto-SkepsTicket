@@ -12,8 +12,10 @@ namespace SkepsTicket.Mongo.Interfaces
         Task CreateClientAsync(ClienteMongo cliente);
         Task CreateEmailAtivoAsync(EmailAtivoMongo emailAtivo);
         Task<ClienteMongo> GetByIdAsync(string email);
+        Task<TicketJaVisto> GetByIdTicketAsync(string ticketId);
         Task InserirBlipCloseTicket(BlipCloseTicketResponse blipCloseTicket);
         Task InserirComandoNaFila(SendBlipFilaMongo sendBlipFila);
+        Task InserirTicketJaVisto(TicketJaVisto ticket);
         Task InserirWebhookTicket(WebhookTicketMongo webhookTicket);
         Task UpdateAsync(ObjectId id, ClienteMongo clienteAtualizado);
     }

@@ -13,6 +13,7 @@ namespace SkepsTicket.Mongo
         private readonly IMongoCollection<SendBlipFilaMongo> _sendBlipFilaCollection;
         private readonly IMongoCollection<BlipCloseTicketResponse> _blipCloseTicketResponse;
         private readonly IMongoCollection<WebhookTicketMongo> _webhookTicketMongo;
+        private readonly IMongoCollection<TicketJaVisto> ticketmongo;
 
         private const int MAX_TICKET_PAGE = 10;
 
@@ -25,6 +26,7 @@ namespace SkepsTicket.Mongo
             _sendBlipFilaCollection = database.GetCollection<SendBlipFilaMongo>("SkepsTicket_sendBlipFila");
             _blipCloseTicketResponse = database.GetCollection<BlipCloseTicketResponse>("SkepsTicket_blipCloseTicket");
             _webhookTicketMongo = database.GetCollection<WebhookTicketMongo>("SkepsTicket_webhookticket");
+            ticketmongo = database.GetCollection<TicketJaVisto>("SkepsTicket_ticketsjaprocessados");
 
         }
 
@@ -33,6 +35,16 @@ namespace SkepsTicket.Mongo
             await _webhookTicketMongo.InsertOneAsync(webhookTicket);
         }
 
+        public async Task InserirTicketJaVisto(TicketJaVisto ticket)
+        {
+            await ticketmongo.InsertOneAsync(ticket);
+        }
+
+        public async Task<TicketJaVisto> GetByIdTicketAsync(string ticketId)
+        {
+            var filter = Builders<TicketJaVisto>.Filter.Eq(c => c.TicketId, ticketId);
+            return await ticketmongo.Find(filter).FirstOrDefaultAsync();
+        }
         public async Task InserirBlipCloseTicket(BlipCloseTicketResponse blipCloseTicket)
         {
             await _blipCloseTicketResponse.InsertOneAsync(blipCloseTicket);
