@@ -122,6 +122,14 @@ namespace SkepsTicket.Model
         public int Priority { get; set; }
     }
 
+    public class Media
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; }
+        [JsonPropertyName("uri")]
+        public string Uri { get; set; }
+    }
+
     public class CustomerInput
     {
         [JsonPropertyName("type")]

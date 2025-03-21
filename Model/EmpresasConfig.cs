@@ -19,5 +19,6 @@
         public string OwnerTeam { get; set; }
         public string OriginEmailAccount { get; set; }
         public string EmailNaoResponda { get; set; }
+        public List<string> AtendenteEmails { get; set; }
     }
 }

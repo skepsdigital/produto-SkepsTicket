@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RestEase.Implementation;
 using SkepsTicket.Infra.RestEase;
 using SkepsTicket.Model;
 using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Services.Interfaces;
+using System.Net.Http;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 
 namespace SkepsTicket.Controllers
@@ -16,14 +19,46 @@ namespace SkepsTicket.Controllers
         private readonly IBlipService blipService;
         private readonly IMongoService mongoService;
         private readonly ISendMessageBlip _sendMessageBlip;
+        private readonly HttpClient _httpClient;
 
 
-        public BlipController(ILogger<BlipController> logger, IBlipService blipService, IMongoService mongoService, ISendMessageBlip sendMessageBlip)
+        public BlipController(ILogger<BlipController> logger, IBlipService blipService, IMongoService mongoService, ISendMessageBlip sendMessageBlip, HttpClient httpClient)
         {
             _logger = logger;
             this.blipService = blipService;
             this.mongoService = mongoService;
             _sendMessageBlip = sendMessageBlip;
+            _httpClient = httpClient;
+        }
+
+        [HttpPost("testeRequest")]
+        public async Task<IActionResult> TesteRequest()
+        {
+            var apiUrl = "https://allu-ai-messaging-api.digital.allugator.com/chat/message/receive";
+
+            var payload = new
+            {
+                senderId = "sender",
+                content = "request.Content",
+                phoneNumber = "request.PhoneNumber",
+                isAudio = false
+            };
+
+            var jsonContent = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+            // Adiciona o header Referer
+            _httpClient.DefaultRequestHeaders.Referrer = new System.Uri("https://minha-app.azure.com");
+
+            var response = await _httpClient.PostAsync(apiUrl, jsonContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsStringAsync();
+                return Ok(result);
+            }
+
+            return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+
         }
 
         [HttpPost("webhook")]

@@ -1,5 +1,6 @@
 ﻿using RestEase;
 using SkepsTicket.Model;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SkepsTicket.Infra.RestEase
 {
@@ -34,5 +35,11 @@ namespace SkepsTicket.Infra.RestEase
             [Body] string createClientRequest,
             [Header("Content-Type")] string contentType = "application/json");
 
+        [Post("/public/v1/ticketFileUpload")]
+        Task<dynamic> AddAnexoInTicket(
+            [Query("token")] string token,
+            [Query("id")] string id,
+            [Query("actionId")] int actionId,
+            [Body] MultipartFormDataContent filefile);
     }
 }

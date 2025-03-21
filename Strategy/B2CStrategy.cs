@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace SkepsTicket.Strategy
 {
-    public class PixBetStrategy : ITicketStrategy
+    public class B2CStrategy : ITicketStrategy
     {
         private readonly List<Empresa> _empresas;
         private const string URL_ANEXO_BASE = "https://zenvia.movidesk.com/Storage/Download?id=";
@@ -17,7 +17,7 @@ namespace SkepsTicket.Strategy
         private readonly Func<string, IBlipSender> _blipSender;
         private readonly IMongoService _mongoService;
 
-        public PixBetStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient, IMongoService mongoService)
+        public B2CStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient, IMongoService mongoService)
         {
             _empresas = empresasConfig.Value.Empresas;
             _sendMessageBlip = sendMessageBlip;

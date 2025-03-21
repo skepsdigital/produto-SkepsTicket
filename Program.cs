@@ -15,6 +15,8 @@ using SkepsTicket.Services;
 using SkepsTicket.Strategy;
 using SkepsTicket.Mongo.Interfaces;
 using SkepsTicket.Mongo.Model;
+using SkepsTicket.Infra.Interfaces;
+using SkepsTicket.Infra;
 
 internal class Program
 {
@@ -97,6 +99,8 @@ internal class Program
         builder.Services.AddSingleton<IMongoService, MongoService>();
         builder.Services.AddSingleton<IMovideskService, MovideskService>();
         builder.Services.AddSingleton<IBlipService, BlipService>();
+        builder.Services.AddSingleton<IEmail, Email>();
+        builder.Services.AddSingleton<ILoginService, LoginService>();
         builder.Services.AddSingleton<TicketStrategyFactory>();
 
         //builder.Services.AddControllers().AddJsonOptions(options =>

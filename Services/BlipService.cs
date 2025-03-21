@@ -13,6 +13,7 @@ namespace SkepsTicket.Services
     {
         private readonly IMovideskAPI _movideskApi;
         private readonly IMongoService _mongoService;
+        private const string ANEXO_HTML = "<img src=\"{0}\"alt=\"Imagem não carregou\" width=\"600\" style=\"display: block; max-width: 100%; height: auto;\">";
 
         public BlipService(IMovideskAPI movideskApi, IMongoService mongoService)
         {
@@ -47,8 +48,12 @@ namespace SkepsTicket.Services
                 var result = historico.Resource.Items.TakeWhile(item => item.Direction != "received").Reverse().ToList();
 
                 var respostaAtendente = string.Join(Environment.NewLine, result.Where(r => r.Type.Equals("text/plain")).Select(r => (string)r.Content));
+                var links = result.Where(r => r.Type.Equals("application/vnd.lime.media-link+json")).Select(r => JsonConvert.DeserializeObject<Media>(r.Content.ToString()).Uri);
+                var anexos = links.Select(l => string.Format(ANEXO_HTML, l));
 
-                if(string.IsNullOrWhiteSpace(respostaAtendente))
+                respostaAtendente += string.Join(Environment.NewLine, anexos);
+
+                if (string.IsNullOrWhiteSpace(respostaAtendente))
                 {
                     Console.Write($"Ticket Encerrado sem respostas - {(int)contatoBlip.resource.extras.ticketIdMovidesk}");
                     return;

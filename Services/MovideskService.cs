@@ -23,6 +23,7 @@ namespace SkepsTicket.Services
         private readonly IUploadAnexo _uploadImg;
         private readonly Func<string, IBlipSender> _blipSender;
         private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io,naoresponda@emails.betdasorte.io";
+        private const string ANEXO_HTML = "<img src=\"{0}\"alt=\"Imagem não carregou\" width=\"600\" style=\"display: block; max-width: 100%; height: auto;\">";
 
         public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig, Func<string, IBlipSender> blipSender, ISendMessageBlip sendMessageBlip, IUploadAnexo uploadImg)
         {
@@ -239,6 +240,81 @@ namespace SkepsTicket.Services
             return Convert.ToBase64String(fileBytes);
         }
 
+        public async Task<string> EnviarEmail(string email, string code)
+        {
+            var novoTicket = new TicketModel()
+            {
+                Type = 2,
+                Subject = "Codigo de acesso",
+                Category = "Desenvolvimento Skeps",
+                OwnerTeam = "Desenvolvimento Skeps",
+                Cc = string.Empty,
+                OriginEmailAccount = "Desenvolvimento Skeps",
+                Actions = new List<Model.Action>()
+                {
+                    new Model.Action()
+                    {
+                        Id = 1,
+                        Type = 2,
+                        Origin = 2,
+                        Description = code,
+                        Status = "Novo",
+                        CreatedBy = new CreatedBy
+                        {
+                            Id = "1586554150",
+                            PersonType = 1,
+                            ProfileType = 3,
+                            BusinessName = "Atendimento Desenvolvimento Skeps",
+                            Email = "desenvolvimento@wlck.com.br"
+                        },
+                        IsDeleted = false,
+                        TimeAppointments = new List<object>(),
+                        Attachments = new List<Attachments>(),
+                        Expenses = new List<object>(),
+                        Tags = new List<string>()
+                    }
+                },
+                Owner = new Owner
+                {
+                    Id = "1586554150",
+                    PersonType = 1,
+                    ProfileType = 3,
+                    BusinessName = "Atendimento Desenvolvimento Skeps",
+                    Email = "desenvolvimento@wlck.com.br"
+                },
+                CreatedBy = new CreatedBy
+                {
+                    Id = "1586554150",
+                    PersonType = 1,
+                    ProfileType = 3,
+                    BusinessName = "Atendimento Desenvolvimento Skeps",
+                    Email = "desenvolvimento@wlck.com.br"
+                },
+                Clients = new List<Client>()
+                {
+                    new Client()
+                    {
+                        Id = "340898ac-41d7-4213-",
+                        PersonType = 1,
+                        ProfileType = 2
+                    }
+                },
+                Tags = new List<string>
+                {
+                    "CodigoLogin"
+                }
+            };
+            var options = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            };
+
+            var novoTicketJson = JsonSerializer.Serialize(novoTicket, options);
+            var novoTicketResponse = await _movideskAPI.CreateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", 1, novoTicketJson);
+
+            return novoTicketResponse.Id;
+        }
+
         public async Task<string> CriarTicketAtivo(EmailAtivoModel emailAtivo)
         {
             Console.WriteLine("Iniciando criação do ticket ativo");
@@ -257,7 +333,7 @@ namespace SkepsTicket.Services
 
                 content.Add(new StringContent(fileExtension), "fileExtension");
 
-                anexoLink = await _uploadImg.UploadAnexo(content);
+                anexoLink = string.Format(ANEXO_HTML, await _uploadImg.UploadAnexo(content));
             }
 
             var empresa = _empresas.First(e => e.Categoria.Equals(emailAtivo.Category));
@@ -373,12 +449,24 @@ namespace SkepsTicket.Services
             };
 
             var novoTicketJson = JsonSerializer.Serialize(novoTicket, options);
+
             var novoTicketResponse = await _movideskAPI.CreateTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7",1, novoTicketJson);
 
             if(string.IsNullOrWhiteSpace(novoTicketResponse.Id))
             {
                 return string.Empty;
             }
+
+            //using var content = new MultipartFormDataContent();
+            //using var stream = emailAtivo.file.First().OpenReadStream();
+            //var fileContent = new StreamContent(stream);
+            //fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(emailAtivo.file.First().ContentType);
+
+            //content.Add(fileContent, "files", emailAtivo.file.First().FileName);
+
+            //var movideskTicketId = novoTicketResponse.Id;
+
+            //await _movideskAPI.AddAnexoInTicket("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", movideskTicketId, 1, content);
 
             await CriarOuAtualizarCliente(emailAtivo.Email, emailAtivo.Email, empresa.OwnerTeam, novoTicketResponse.Id);
 
@@ -400,6 +488,7 @@ namespace SkepsTicket.Services
                     {
                         Identity = contatoIdentity,
                         Name = emailAtivo.Name,
+                        Email = emailAtivo.Email,
                         Extras = new Dictionary<string, string>
                             {
                                 { "team", empresa.Categoria },
@@ -423,6 +512,7 @@ namespace SkepsTicket.Services
                     {
                         Name = emailAtivo.Name,
                         Identity = contatoIdentity,
+                        Email = emailAtivo.Email,
                         Extras = new Dictionary<string, string>
                             {
                                 { "team", empresa.Categoria },

@@ -14,6 +14,8 @@ namespace SkepsTicket.Mongo
         private readonly IMongoCollection<BlipCloseTicketResponse> _blipCloseTicketResponse;
         private readonly IMongoCollection<WebhookTicketMongo> _webhookTicketMongo;
         private readonly IMongoCollection<TicketJaVisto> ticketmongo;
+        private readonly IMongoCollection<LoginMongo> _loginCollection;
+        private readonly IMongoCollection<EmpresasInfoMongo> _empresasInfoCollection;
 
         private const int MAX_TICKET_PAGE = 10;
 
@@ -27,7 +29,34 @@ namespace SkepsTicket.Mongo
             _blipCloseTicketResponse = database.GetCollection<BlipCloseTicketResponse>("SkepsTicket_blipCloseTicket");
             _webhookTicketMongo = database.GetCollection<WebhookTicketMongo>("SkepsTicket_webhookticket");
             ticketmongo = database.GetCollection<TicketJaVisto>("SkepsTicket_ticketsjaprocessados");
+            _loginCollection = database.GetCollection<LoginMongo>("SkepsTicket_loginCode");
+            _empresasInfoCollection = database.GetCollection<EmpresasInfoMongo>("SkepsTicket_empresasInfo");
 
+        }
+
+        public async Task<List<EmpresasInfoMongo>> GetEmpresasInfoAsync()
+        {
+            return await _empresasInfoCollection.Find(new BsonDocument()).ToListAsync();
+        }
+        public async Task InserirEmpresasInfo(EmpresasInfoMongo empresas) => await _empresasInfoCollection.InsertOneAsync(empresas);
+
+        public async Task InserirLoginCode(LoginMongo loginMongo)
+        {
+            await _loginCollection.InsertOneAsync(loginMongo);
+        }
+
+        public async Task<LoginMongo> GetLoginCodeByCodeAsync(string code)
+        {
+            var filter = Builders<LoginMongo>.Filter.Eq(c => c.Code, code);
+            return await _loginCollection.Find(filter).FirstOrDefaultAsync();
+        }
+
+        public async Task<bool> RemoveLoginCodeAsync(string code)
+        {
+            var filter = Builders<LoginMongo>.Filter.Eq(c => c.Code, code);
+            var result = await _loginCollection.DeleteOneAsync(filter);
+
+            return result.DeletedCount > 0;
         }
 
         public async Task InserirWebhookTicket(WebhookTicketMongo webhookTicket)
