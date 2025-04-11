@@ -64,6 +64,7 @@ namespace SkepsTicket.Controllers
         [HttpPost("webhook")]
         public async Task<IActionResult> Webhook(BlipCloseTicketResponse blipCloseTicket)
         {
+            Console.WriteLine(JsonSerializer.Serialize(blipCloseTicket));
             Console.WriteLine($"Recebendo webhook Blip - {blipCloseTicket.BlipTicketId} - {blipCloseTicket.Identity} - {blipCloseTicket.Tags}");
             await blipService.ProcessarRespostaAtendente(blipCloseTicket);
             return Ok();

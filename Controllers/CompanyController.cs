@@ -14,11 +14,11 @@ namespace SkepsTicket.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class EmpresasController : ControllerBase
+    public class CompanyController : ControllerBase
     {
         private readonly ILoginService _loginService;
         private readonly IMongoService _mongoService;
-        public EmpresasController(ILoginService loginService, IMongoService mongoService = null)
+        public CompanyController(ILoginService loginService, IMongoService mongoService = null)
         {
             _loginService = loginService;
             _mongoService = mongoService;
@@ -31,5 +31,11 @@ namespace SkepsTicket.Controllers
             return Ok();
         }
 
+        [HttpPost("search/create")]
+        public async Task<IActionResult> SalvarPesquisa([FromBody] SearchMongo searchMongo)
+        {
+            await _mongoService.InserirSearch(searchMongo);
+            return Ok();
+        }
     }
 }

@@ -17,7 +17,9 @@ namespace SkepsTicket.Strategy
                 {"Blip - food to save", new FoodToSaveStrategy(empresasConfig)},
                 {"PixBet", new PixBetStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService)},
                 {"B2C", new B2CStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService) },
-                {"EstanteMagica", new EstanteMagicaStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService) }
+                {"EstanteMagica", new EstanteMagicaStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService) },
+                {"Austa", new AustaStrategy(empresasConfig, sendMessageBlip, senderBlip, mongoService) }
+
             };
         }
 
@@ -46,6 +48,11 @@ namespace SkepsTicket.Strategy
             if (name.IndexOf("estantemagica", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 name = "EstanteMagica";
+            }
+
+            if (name.IndexOf("austa", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                name = "Austa";
             }
 
             return _strategies[name];

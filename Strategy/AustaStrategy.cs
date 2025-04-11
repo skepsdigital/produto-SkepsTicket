@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace SkepsTicket.Strategy
 {
-    public class EstanteMagicaStrategy : ITicketStrategy
+    public class AustaStrategy : ITicketStrategy
     {
         private readonly List<Empresa> _empresas;
         private const string URL_ANEXO_BASE = "https://zenvia.movidesk.com/Storage/Download?id=";
@@ -17,7 +17,7 @@ namespace SkepsTicket.Strategy
         private readonly Func<string, IBlipSender> _blipSender;
         private readonly IMongoService _mongoService;
 
-        public EstanteMagicaStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient, IMongoService mongoService)
+        public AustaStrategy(IOptions<EmpresasConfig> empresasConfig, ISendMessageBlip sendMessageBlip, Func<string, IBlipSender> defaultClient, IMongoService mongoService)
         {
             _empresas = empresasConfig.Value.Empresas;
             _sendMessageBlip = sendMessageBlip;
@@ -29,7 +29,6 @@ namespace SkepsTicket.Strategy
         {
             var empresaKey = ticket.OriginEmailAccount ?? ticket.Owner.BusinessName;
             var empresa = _empresas.First(e => e.OwnerBusinessName.Equals(empresaKey) || e.OriginEmailAccount.Equals(empresaKey));
-            var filaEspecifica = string.Empty;
 
             Console.WriteLine($"{ticket.Id} - Cliente encontrado - {ticket.Clients.First().Email}");
 
@@ -38,13 +37,6 @@ namespace SkepsTicket.Strategy
             var blipSender = _blipSender($"https://{empresa.Contrato}.http.msging.net");
 
             var idsProcessados = new List<string>();
-
-            //Ajustar depois
-            if (ticket.Subject is not null && ticket.Subject.Contains("Back", StringComparison.OrdinalIgnoreCase))
-            {
-                filaEspecifica = "Backoff";
-            }
-            //Ajustar depois
 
             try
             {
@@ -62,7 +54,7 @@ namespace SkepsTicket.Strategy
                             Identity = contatoIdentity,
                             Extras = new Dictionary<string, string>
                             {
-                                { "team", filaEspecifica == string.Empty ? empresa.Categoria : filaEspecifica },
+                                { "team", empresa.Categoria },
                                 { "ticketIdMovidesk", ticket.Id },
                                 { "ownerId",  empresa.OwnerId},
                                 { "ownerBusinessName", empresa.OwnerBusinessName},
@@ -111,9 +103,7 @@ namespace SkepsTicket.Strategy
 
                         var mensagem = Regex.Replace(action.Description, @"#####.*", string.Empty, RegexOptions.Singleline);
                         mensagem = Regex.Replace(mensagem, @"Em (seg|ter|qua|qui|sex|sab|sáb|dom|seg.|ter.|qua.|qui.|sex.|sab.|sáb.|dom.),? .*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                        mensagem = Regex.Replace(mensagem, @"(En|El) (lun|mar|mié|jue|vie|sáb|dom|lun.|mar.|mié.|jue.|vie.|sáb.|dom.),? .*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                        mensagem = Regex.Replace(mensagem, @"On (mon|tue|wed|thu|fri|sat|sun|mon.|tue.|wed.|thu.|fri.|sat.|sun.),? .*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
-                        mensagem = Regex.Replace(mensagem, @">.*", string.Empty, RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
                         var anexoFragmento = Regex.Matches(action.HtmlDescription, @"\/([A-Fa-f0-9]{32})(?=\?)")
                             .Cast<Match>()
                             .Where(match => match.Success)
@@ -159,7 +149,7 @@ namespace SkepsTicket.Strategy
                             Extras = new Dictionary<string, string>
                             {
                                 { "idsProcessados", string.Join(",", idsProcessados) },
-                                { "team", filaEspecifica == string.Empty ? empresa.Categoria : filaEspecifica },
+                                { "team", empresa.Categoria },
                                 { "ticketIdMovidesk", ticket.Id },
                                 { "ownerId",  empresa.OwnerId},
                                 { "ownerBusinessName", empresa.OwnerBusinessName},

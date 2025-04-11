@@ -12,8 +12,8 @@ namespace SkepsTicket.Infra
 
         public Email()
         {
-            _authorizationKey = "cHJvZHV0b3NsaW1wZXphZGViYXNlOlhuaWVBUUdBTzdFa3Rxb1BPUXk4";
-            _endpointUrl = "https://wlck.http.msging.net/messages";
+            _authorizationKey = "c2V1Y29kaWdvc2tlcHM6RG4ySTNNYUxxOHMwbTFhZVlkUEI=";
+            _endpointUrl = "https://augusto-almeida-kepeh.http.msging.net/messages";
             _httpClient = new HttpClient();
 
             // Configurando o cabeçalho de autorização

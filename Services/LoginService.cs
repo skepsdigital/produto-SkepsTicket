@@ -58,9 +58,20 @@ namespace SkepsTicket.Services
 
             await _mongoService.InserirLoginCode(new LoginMongo { Code = code, Email = email, Validate = DateTime.UtcNow.AddHours(-3).AddHours(1) });
 
-            await _email.SendMessageAsync(email, code);
+            await SendEmail(email, code);
 
             return code;
+        }
+
+        private async Task SendEmail(string email, string code)
+        {
+            var result = new StringBuilder();
+            result.AppendLine("SKEPS TICKETS");
+            result.AppendLine("Esse é o seu código de verificação:");
+            result.AppendLine(code);
+            result.AppendLine("Em caso de problemas com o login, entrar em contato através desse link.");
+            result.AppendLine("https://bit.ly/suporteskeps");
+            await _email.SendMessageAsync(email, result.ToString());
         }
 
     }

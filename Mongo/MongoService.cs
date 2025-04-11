@@ -16,7 +16,7 @@ namespace SkepsTicket.Mongo
         private readonly IMongoCollection<TicketJaVisto> ticketmongo;
         private readonly IMongoCollection<LoginMongo> _loginCollection;
         private readonly IMongoCollection<EmpresasInfoMongo> _empresasInfoCollection;
-
+        private readonly IMongoCollection<SearchMongo> _searchMongo;
         private const int MAX_TICKET_PAGE = 10;
 
         public MongoService(IMongoClient mongoClient)
@@ -31,8 +31,10 @@ namespace SkepsTicket.Mongo
             ticketmongo = database.GetCollection<TicketJaVisto>("SkepsTicket_ticketsjaprocessados");
             _loginCollection = database.GetCollection<LoginMongo>("SkepsTicket_loginCode");
             _empresasInfoCollection = database.GetCollection<EmpresasInfoMongo>("SkepsTicket_empresasInfo");
+            _searchMongo = database.GetCollection<SearchMongo>("SkepstTicket_search");
 
         }
+        public async Task InserirSearch(SearchMongo search) => await _searchMongo.InsertOneAsync(search);
 
         public async Task<List<EmpresasInfoMongo>> GetEmpresasInfoAsync()
         {

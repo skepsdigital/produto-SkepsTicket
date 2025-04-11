@@ -23,5 +23,6 @@ namespace SkepsTicket.Mongo.Interfaces
         Task<bool> RemoveLoginCodeAsync(string code);
         Task UpdateAsync(ObjectId id, ClienteMongo clienteAtualizado);
         Task InserirEmpresasInfo(EmpresasInfoMongo empresas);
+        Task InserirSearch(SearchMongo search);
     }
 }

@@ -22,7 +22,7 @@ namespace SkepsTicket.Services
         private readonly ISendMessageBlip _sendMessageBlip;
         private readonly IUploadAnexo _uploadImg;
         private readonly Func<string, IBlipSender> _blipSender;
-        private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io,naoresponda@emails.betdasorte.io";
+        private const string EmailNaoResponda = "naoresponda@pixbet.com,naoresponda@pixbet.com.br,naoresponda@betdasorte.io,naoresponda@emails.betdasorte.io,noreply@flabet.com";
         private const string ANEXO_HTML = "<img src=\"{0}\"alt=\"Imagem não carregou\" width=\"600\" style=\"display: block; max-width: 100%; height: auto;\">";
 
         public MovideskService(ILogger<MovideskService> logger, IMovideskAPI movideskAPI, TicketStrategyFactory strategyFactory, IMongoService mongoService, IOptions<EmpresasConfig> empresasConfig, Func<string, IBlipSender> blipSender, ISendMessageBlip sendMessageBlip, IUploadAnexo uploadImg)
@@ -71,15 +71,6 @@ namespace SkepsTicket.Services
 
             try
             {
-                var result = await _mongoService.GetByIdTicketAsync(ticketMovideskId);
-
-                if(result is not null)
-                {
-                    return;
-                }
-
-                await _mongoService.InserirTicketJaVisto(new TicketJaVisto { TicketId = ticketMovideskId });
-
                 ticket = await _movideskAPI.GetTicketAsync("e894e231-a6c0-4cc1-ab75-29ce219b5bd7", int.Parse(ticketMovideskId));
                 
                 var strategyKey = ticket.OriginEmailAccount ?? ticket.Owner.BusinessName;
@@ -336,6 +327,7 @@ namespace SkepsTicket.Services
                 anexoLink = string.Format(ANEXO_HTML, await _uploadImg.UploadAnexo(content));
             }
 
+            Console.WriteLine(string.Join("/",_empresas.Select(e => e.Categoria)));
             var empresa = _empresas.First(e => e.Categoria.Equals(emailAtivo.Category));
 
             var emailAtivoMongo = new EmailAtivoMongo
